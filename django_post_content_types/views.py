@@ -4,6 +4,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_http_methods
 import json
 import xml.etree.ElementTree as ET
+from .forms import MultipartForm
 
 
 @ensure_csrf_cookie
@@ -31,19 +32,34 @@ def handle_json(request):
 @require_http_methods(["POST"])
 def handle_multipart(request):
     """Handle multipart/form-data requests (forms with files)"""
-    files = {}
-    for key, file in request.FILES.items():
-        files[key] = {
-            "name": file.name,
-            "size": file.size,
-            "content_type": file.content_type,
-        }
+    form = MultipartForm(request.POST, request.FILES)
+
+    if not form.is_valid():
+        return JsonResponse(
+            {
+                "status": "error",
+                "errors": form.errors,
+                "content_type": request.content_type,
+            },
+            status=400,
+        )
+
+    form_data = {}
+
+    for key, value in form.cleaned_data.items():
+        if hasattr(value, "read"):
+            form_data[key] = {
+                "name": value.name,
+                "size": value.size,
+                "content_type": value.content_type,
+            }
+        else:
+            form_data[key] = value
 
     return JsonResponse(
         {
             "status": "success",
-            "form_data": dict(request.POST),
-            "files": files,
+            "form_data": form_data,
             "content_type": request.content_type,
         }
     )
