@@ -17,15 +17,15 @@ python manage.py runserver
 
 ## API Endpoints
 
-- `POST /api/json/` - Handle JSON
-- `POST /api/multipart/` - Handle multipart form data
 - `POST /api/urlencoded/` - Handle URL-encoded form data
-- `POST /api/text/` - Handle plain text
-- `POST /api/binary/` - Handle binary data
-- `POST /api/xml/` - Handle XML
-- `POST /api/html/` - Handle HTML
-- `POST /api/svg/` - Handle SVG
+- `POST /api/multipart/` - Handle multipart form data
+- `POST /api/json/` - Handle JSON
 - `POST /api/ndjson/` - Handle NDJSON
+- `POST /api/text/` - Handle plain text
+- `POST /api/html/` - Handle HTML
+- `POST /api/xml/` - Handle XML
+- `POST /api/svg/` - Handle SVG
+- `POST /api/binary/` - Handle binary data
 
 All endpoints return JSON responses with the received data and metadata.
 
@@ -40,30 +40,32 @@ All views use Django's built-in CSRF protection. The JavaScript code includes:
 
 ## Real-World Use Cases
 
-### 1. application/json
+### 1. application/x-www-form-urlencoded
 
-**When to use:** Modern REST APIs, single-page applications, mobile apps
+**When to use:** Traditional HTML forms, simple key-value submissions
 
 **Real-world examples:**
-- **User Registration/Login:** Sending user credentials and profile data to authentication endpoints
-- **E-commerce Cart Operations:** Adding/updating items in shopping cart with product IDs, quantities, and options
-- **Real-time Chat Messages:** Sending message content, timestamps, and metadata in messaging applications
-- **API Integrations:** Webhooks from services like Stripe, GitHub, or Slack sending event data
-- **Dashboard Analytics:** Submitting complex filter criteria, date ranges, and aggregation parameters
+- **Login Forms:** Simple username/password authentication without file uploads
+- **Contact Forms:** Name, email, subject, and message fields
+- **Search Filters:** Submitting search queries with multiple filter parameters
+- **Newsletter Subscriptions:** Email address and preference checkboxes
+- **Settings Updates:** Toggling feature flags or updating simple configuration options
 
 ```javascript
-// Example: User registration
-fetch('/api/json/', {
+// Example: Contact form submission
+const params = new URLSearchParams();
+params.append('name', 'John Doe');
+params.append('email', 'john@example.com');
+params.append('subject', 'Product Inquiry');
+params.append('message', 'I would like more information...');
+
+fetch('/api/urlencoded/', {
     method: 'POST',
     headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
         'X-CSRFToken': getCSRFToken()
     },
-    body: JSON.stringify({
-        username: 'john_doe',
-        email: 'john@example.com',
-        preferences: { theme: 'dark', notifications: true }
-    })
+    body: params
 });
 ```
 
@@ -96,38 +98,66 @@ fetch('/api/multipart/', {
 
 ---
 
-### 3. application/x-www-form-urlencoded
+### 3. application/json
 
-**When to use:** Traditional HTML forms, simple key-value submissions
+**When to use:** Modern REST APIs, single-page applications, mobile apps
 
 **Real-world examples:**
-- **Login Forms:** Simple username/password authentication without file uploads
-- **Contact Forms:** Name, email, subject, and message fields
-- **Search Filters:** Submitting search queries with multiple filter parameters
-- **Newsletter Subscriptions:** Email address and preference checkboxes
-- **Settings Updates:** Toggling feature flags or updating simple configuration options
+- **User Registration/Login:** Sending user credentials and profile data to authentication endpoints
+- **E-commerce Cart Operations:** Adding/updating items in shopping cart with product IDs, quantities, and options
+- **Real-time Chat Messages:** Sending message content, timestamps, and metadata in messaging applications
+- **API Integrations:** Webhooks from services like Stripe, GitHub, or Slack sending event data
+- **Dashboard Analytics:** Submitting complex filter criteria, date ranges, and aggregation parameters
 
 ```javascript
-// Example: Contact form submission
-const params = new URLSearchParams();
-params.append('name', 'John Doe');
-params.append('email', 'john@example.com');
-params.append('subject', 'Product Inquiry');
-params.append('message', 'I would like more information...');
-
-fetch('/api/urlencoded/', {
+// Example: User registration
+fetch('/api/json/', {
     method: 'POST',
     headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Type': 'application/json',
         'X-CSRFToken': getCSRFToken()
     },
-    body: params
+    body: JSON.stringify({
+        username: 'john_doe',
+        email: 'john@example.com',
+        preferences: { theme: 'dark', notifications: true }
+    })
 });
 ```
 
 ---
 
-### 4. text/plain
+### 4. application/x-ndjson
+
+**When to use:** Streaming data, bulk operations, log aggregation
+
+**Real-world examples:**
+- **Bulk Data Import:** Importing thousands of records efficiently (users, products, transactions)
+- **Log Aggregation:** Sending application logs from multiple sources to centralized logging
+- **Real-time Analytics:** Streaming event data for analytics processing
+- **Machine Learning Datasets:** Uploading training data in streaming fashion
+- **Database Migrations:** Transferring large datasets between systems line-by-line
+
+```javascript
+// Example: Bulk user import
+const ndjsonData = `{"username":"john_doe","email":"john@example.com","role":"user"}
+{"username":"jane_smith","email":"jane@example.com","role":"admin"}
+{"username":"bob_jones","email":"bob@example.com","role":"user"}
+{"username":"alice_wong","email":"alice@example.com","role":"moderator"}`;
+
+fetch('/api/ndjson/', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/x-ndjson',
+        'X-CSRFToken': getCSRFToken()
+    },
+    body: ndjsonData
+});
+```
+
+---
+
+### 5. text/plain
 
 **When to use:** Simple text content, logs, notes, raw text data
 
@@ -159,69 +189,7 @@ fetch('/api/text/', {
 
 ---
 
-### 5. application/octet-stream
-
-**When to use:** Binary files, encrypted data, raw byte streams
-
-**Real-world examples:**
-- **Encrypted File Storage:** Uploading encrypted backups or sensitive documents
-- **Binary Protocol Data:** Sending proprietary binary format data (e.g., game saves, CAD files)
-- **Image Processing:** Uploading raw image data for server-side processing
-- **Audio/Video Chunks:** Streaming media data in chunks for real-time processing
-- **Database Dumps:** Uploading binary database backup files
-
-```javascript
-// Example: Uploading encrypted data
-const encryptedData = await encryptFile(originalFile);
-const binaryData = new Uint8Array(encryptedData);
-
-fetch('/api/binary/', {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/octet-stream',
-        'X-CSRFToken': getCSRFToken()
-    },
-    body: binaryData
-});
-```
-
----
-
-### 6. application/xml
-
-**When to use:** Legacy systems, SOAP APIs, enterprise integrations, RSS feeds
-
-**Real-world examples:**
-- **SOAP Web Services:** Integrating with enterprise systems (banking, ERP, CRM)
-- **RSS/Atom Feed Submissions:** Publishing blog posts or podcast episodes
-- **Healthcare Data Exchange:** HL7 or FHIR medical records transmission
-- **E-commerce Integrations:** Product catalog updates to marketplaces (Amazon, eBay)
-- **Configuration Management:** Uploading application settings or deployment configurations
-
-```javascript
-// Example: Product catalog update
-const xmlData = `<?xml version="1.0" encoding="UTF-8"?>
-<product>
-    <sku>PROD-12345</sku>
-    <name>Wireless Headphones</name>
-    <price>99.99</price>
-    <stock>150</stock>
-    <category>Electronics</category>
-</product>`;
-
-fetch('/api/xml/', {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/xml',
-        'X-CSRFToken': getCSRFToken()
-    },
-    body: xmlData
-});
-```
-
----
-
-### 7. text/html
+### 6. text/html
 
 **When to use:** Rich text editors, email templates, content management
 
@@ -260,6 +228,40 @@ fetch('/api/html/', {
 
 ---
 
+### 7. application/xml
+
+**When to use:** Legacy systems, SOAP APIs, enterprise integrations, RSS feeds
+
+**Real-world examples:**
+- **SOAP Web Services:** Integrating with enterprise systems (banking, ERP, CRM)
+- **RSS/Atom Feed Submissions:** Publishing blog posts or podcast episodes
+- **Healthcare Data Exchange:** HL7 or FHIR medical records transmission
+- **E-commerce Integrations:** Product catalog updates to marketplaces (Amazon, eBay)
+- **Configuration Management:** Uploading application settings or deployment configurations
+
+```javascript
+// Example: Product catalog update
+const xmlData = `<?xml version="1.0" encoding="UTF-8"?>
+<product>
+    <sku>PROD-12345</sku>
+    <name>Wireless Headphones</name>
+    <price>99.99</price>
+    <stock>150</stock>
+    <category>Electronics</category>
+</product>`;
+
+fetch('/api/xml/', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/xml',
+        'X-CSRFToken': getCSRFToken()
+    },
+    body: xmlData
+});
+```
+
+---
+
 ### 8. image/svg+xml
 
 **When to use:** Vector graphics, icons, diagrams, charts
@@ -290,31 +292,29 @@ fetch('/api/svg/', {
 
 ---
 
-### 9. application/x-ndjson
+### 9. application/octet-stream
 
-**When to use:** Streaming data, bulk operations, log aggregation
+**When to use:** Binary files, encrypted data, raw byte streams
 
 **Real-world examples:**
-- **Bulk Data Import:** Importing thousands of records efficiently (users, products, transactions)
-- **Log Aggregation:** Sending application logs from multiple sources to centralized logging
-- **Real-time Analytics:** Streaming event data for analytics processing
-- **Machine Learning Datasets:** Uploading training data in streaming fashion
-- **Database Migrations:** Transferring large datasets between systems line-by-line
+- **Encrypted File Storage:** Uploading encrypted backups or sensitive documents
+- **Binary Protocol Data:** Sending proprietary binary format data (e.g., game saves, CAD files)
+- **Image Processing:** Uploading raw image data for server-side processing
+- **Audio/Video Chunks:** Streaming media data in chunks for real-time processing
+- **Database Dumps:** Uploading binary database backup files
 
 ```javascript
-// Example: Bulk user import
-const ndjsonData = `{"username":"john_doe","email":"john@example.com","role":"user"}
-{"username":"jane_smith","email":"jane@example.com","role":"admin"}
-{"username":"bob_jones","email":"bob@example.com","role":"user"}
-{"username":"alice_wong","email":"alice@example.com","role":"moderator"}`;
+// Example: Uploading encrypted data
+const encryptedData = await encryptFile(originalFile);
+const binaryData = new Uint8Array(encryptedData);
 
-fetch('/api/ndjson/', {
+fetch('/api/binary/', {
     method: 'POST',
     headers: {
-        'Content-Type': 'application/x-ndjson',
+        'Content-Type': 'application/octet-stream',
         'X-CSRFToken': getCSRFToken()
     },
-    body: ndjsonData
+    body: binaryData
 });
 ```
 
@@ -324,15 +324,15 @@ fetch('/api/ndjson/', {
 
 | Use Case | Recommended Format | Why? |
 |----------|-------------------|------|
-| REST API | `application/json` | Standard, easy to parse, widely supported |
-| File Upload | `multipart/form-data` | Handles binary files efficiently |
 | Simple Form | `application/x-www-form-urlencoded` | Lightweight, browser default |
-| Text Content | `text/plain` | Simple, no parsing needed |
-| Binary Data | `application/octet-stream` | Raw bytes, no encoding overhead |
-| Legacy Systems | `application/xml` | Enterprise compatibility |
-| Rich Content | `text/html` | Preserves formatting |
-| Vector Graphics | `image/svg+xml` | Scalable, editable |
+| File Upload | `multipart/form-data` | Handles binary files efficiently |
+| REST API | `application/json` | Standard, easy to parse, widely supported |
 | Bulk Operations | `application/x-ndjson` | Memory efficient streaming |
+| Text Content | `text/plain` | Simple, no parsing needed |
+| Rich Content | `text/html` | Preserves formatting |
+| Legacy Systems | `application/xml` | Enterprise compatibility |
+| Vector Graphics | `image/svg+xml` | Scalable, editable |
+| Binary Data | `application/octet-stream` | Raw bytes, no encoding overhead |
 
 ---
 
