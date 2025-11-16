@@ -16,37 +16,27 @@ def index(request):
 
 
 @require_http_methods(["POST"])
-def handle_json(request):
-    """Handle application/json requests"""
-    try:
-        data = json.loads(request.body)
-        validated = JSONDataSchema(**data)
+def handle_urlencoded(request):
+    """Handle application/x-www-form-urlencoded requests"""
+    form = URLEncodedForm(request.POST)
 
+    if not form.is_valid():
         return JsonResponse(
             {
-                "status": "success",
-                "received": validated.model_dump(),
+                "status": "error",
+                "errors": form.errors,
                 "content_type": request.content_type,
-            }
-        )
-    except json.JSONDecodeError:
-        return JsonResponse(
-            {
-                "status": "error",
-                "error": "Invalid JSON",
-                "content_type": request.content_type
             },
-            status=400
+            status=400,
         )
-    except ValidationError as e:
-        return JsonResponse(
-            {
-                "status": "error",
-                "errors": e.errors(),
-                "content_type": request.content_type
-            },
-            status=400
-        )
+
+    return JsonResponse(
+        {
+            "status": "success",
+            "form_data": form.cleaned_data,
+            "content_type": request.content_type,
+        }
+    )
 
 
 @require_http_methods(["POST"])
@@ -86,27 +76,58 @@ def handle_multipart(request):
 
 
 @require_http_methods(["POST"])
-def handle_urlencoded(request):
-    """Handle application/x-www-form-urlencoded requests"""
-    form = URLEncodedForm(request.POST)
+def handle_json(request):
+    """Handle application/json requests"""
+    try:
+        data = json.loads(request.body)
+        validated = JSONDataSchema(**data)
 
-    if not form.is_valid():
+        return JsonResponse(
+            {
+                "status": "success",
+                "received": validated.model_dump(),
+                "content_type": request.content_type,
+            }
+        )
+    except json.JSONDecodeError:
         return JsonResponse(
             {
                 "status": "error",
-                "errors": form.errors,
-                "content_type": request.content_type,
+                "error": "Invalid JSON",
+                "content_type": request.content_type
             },
-            status=400,
+            status=400
+        )
+    except ValidationError as e:
+        return JsonResponse(
+            {
+                "status": "error",
+                "errors": e.errors(),
+                "content_type": request.content_type
+            },
+            status=400
         )
 
-    return JsonResponse(
-        {
-            "status": "success",
-            "form_data": form.cleaned_data,
-            "content_type": request.content_type,
-        }
-    )
+
+@require_http_methods(["POST"])
+def handle_ndjson(request):
+    """Handle application/x-ndjson requests"""
+    try:
+        ndjson_content = request.body.decode("utf-8")
+        lines = [
+            json.loads(line) for line in ndjson_content.strip().split("\n") if line
+        ]
+
+        return JsonResponse(
+            {
+                "status": "success",
+                "lines_count": len(lines),
+                "data": lines,
+                "content_type": request.content_type,
+            }
+        )
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid NDJSON"}, status=400)
 
 
 @require_http_methods(["POST"])
@@ -124,15 +145,15 @@ def handle_text_plain(request):
 
 
 @require_http_methods(["POST"])
-def handle_binary(request):
-    """Handle application/octet-stream requests (raw binary data)"""
-    binary_data = request.body
+def handle_html(request):
+    """Handle text/html requests"""
+    html_content = request.body.decode("utf-8")
     return JsonResponse(
         {
             "status": "success",
-            "size": len(binary_data),
+            "received": html_content,
+            "length": len(html_content),
             "content_type": request.content_type,
-            "first_bytes": list(binary_data[:10]),
         }
     )
 
@@ -159,20 +180,6 @@ def handle_xml(request):
 
 
 @require_http_methods(["POST"])
-def handle_html(request):
-    """Handle text/html requests"""
-    html_content = request.body.decode("utf-8")
-    return JsonResponse(
-        {
-            "status": "success",
-            "received": html_content,
-            "length": len(html_content),
-            "content_type": request.content_type,
-        }
-    )
-
-
-@require_http_methods(["POST"])
 def handle_svg(request):
     """Handle image/svg+xml requests"""
     svg_content = request.body.decode("utf-8")
@@ -187,21 +194,14 @@ def handle_svg(request):
 
 
 @require_http_methods(["POST"])
-def handle_ndjson(request):
-    """Handle application/x-ndjson requests"""
-    try:
-        ndjson_content = request.body.decode("utf-8")
-        lines = [
-            json.loads(line) for line in ndjson_content.strip().split("\n") if line
-        ]
-
-        return JsonResponse(
-            {
-                "status": "success",
-                "lines_count": len(lines),
-                "data": lines,
-                "content_type": request.content_type,
-            }
-        )
-    except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid NDJSON"}, status=400)
+def handle_binary(request):
+    """Handle application/octet-stream requests (raw binary data)"""
+    binary_data = request.body
+    return JsonResponse(
+        {
+            "status": "success",
+            "size": len(binary_data),
+            "content_type": request.content_type,
+            "first_bytes": list(binary_data[:10]),
+        }
+    )

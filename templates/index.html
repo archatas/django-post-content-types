@@ -14,7 +14,7 @@
         .card h2 { font-size: 16px; margin-bottom: 10px; }
         button { background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
         button:hover { background: #0056b3; }
-        .payload { margin: 10px 0; padding: 10px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; font-family: monospace; white-space: pre-wrap; max-height: 150px; overflow: auto; }
+        .payload { margin: 10px 0; padding: 10px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; font-family: monospace; white-space: pre; max-height: 150px; overflow: auto; }
         .response { margin-top: 10px; padding: 10px; background: #f5f5f5; border-radius: 4px; font-size: 12px; max-height: 200px; overflow: auto; }
         input[type="file"] { margin: 10px 0; }
     </style>
@@ -24,10 +24,10 @@
     
     <div class="grid">
         <div class="card">
-            <h2>1. application/json</h2>
-            <div class="payload">{ name: "John Doe", email: "john@example.com", age: 30 }</div>
-            <button onclick="sendJSON()">Send JSON</button>
-            <div id="json-response" class="response"></div>
+            <h2>1. application/x-www-form-urlencoded</h2>
+            <div class="payload">username=john_doe&email=john@example.com&password=Secret123&bio=This+is+a+multi-line%0Abio+text.</div>
+            <button onclick="sendURLEncoded()">Send URL Encoded</button>
+            <div id="urlencoded-response" class="response"></div>
         </div>
 
         <div class="card">
@@ -41,14 +41,23 @@ avatar: [selected file]</div>
         </div>
 
         <div class="card">
-            <h2>3. application/x-www-form-urlencoded</h2>
-            <div class="payload">username=john_doe&email=john@example.com&password=Secret123&bio=This+is+a+multi-line%0Abio+text.</div>
-            <button onclick="sendURLEncoded()">Send URL Encoded</button>
-            <div id="urlencoded-response" class="response"></div>
+            <h2>3. application/json</h2>
+            <div class="payload">{ name: "John Doe", email: "john@example.com", age: 30 }</div>
+            <button onclick="sendJSON()">Send JSON</button>
+            <div id="json-response" class="response"></div>
         </div>
 
         <div class="card">
-            <h2>4. text/plain</h2>
+            <h2>4. application/x-ndjson</h2>
+            <div class="payload">{"name":"John","age":30}
+{"name":"Jane","age":25}
+{"name":"Bob","age":35}</div>
+            <button onclick="sendNDJSON()">Send NDJSON</button>
+            <div id="ndjson-response" class="response"></div>
+        </div>
+
+        <div class="card">
+            <h2>5. text/plain</h2>
             <div class="payload">This is plain text content.
 It can span multiple lines.
 Line 3 of the content.</div>
@@ -57,15 +66,17 @@ Line 3 of the content.</div>
         </div>
 
         <div class="card">
-            <h2>5. application/octet-stream</h2>
-            <div class="payload">Uint8Array([72, 101, 108, 108, 111])
-// "Hello" in ASCII bytes</div>
-            <button onclick="sendBinary()">Send Binary</button>
-            <div id="binary-response" class="response"></div>
+            <h2>6. text/html</h2>
+            <div class="payload">&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;body&gt;&lt;h1&gt;Hello World&lt;/h1&gt;&lt;/body&gt;
+&lt;/html&gt;</div>
+            <button onclick="sendHTML()">Send HTML</button>
+            <div id="html-response" class="response"></div>
         </div>
 
         <div class="card">
-            <h2>6. application/xml</h2>
+            <h2>7. application/xml</h2>
             <div class="payload">&lt;user&gt;
   &lt;name&gt;John Doe&lt;/name&gt;
   &lt;email&gt;john@example.com&lt;/email&gt;
@@ -73,16 +84,6 @@ Line 3 of the content.</div>
 &lt;/user&gt;</div>
             <button onclick="sendXML()">Send XML</button>
             <div id="xml-response" class="response"></div>
-        </div>
-
-        <div class="card">
-            <h2>7. text/html</h2>
-            <div class="payload">&lt;!DOCTYPE html&gt;
-&lt;html&gt;
-&lt;body&gt;&lt;h1&gt;Hello World&lt;/h1&gt;&lt;/body&gt;
-&lt;/html&gt;</div>
-            <button onclick="sendHTML()">Send HTML</button>
-            <div id="html-response" class="response"></div>
         </div>
 
         <div class="card">
@@ -96,12 +97,11 @@ Line 3 of the content.</div>
         </div>
 
         <div class="card">
-            <h2>9. application/x-ndjson</h2>
-            <div class="payload">{"name":"John","age":30}
-{"name":"Jane","age":25}
-{"name":"Bob","age":35}</div>
-            <button onclick="sendNDJSON()">Send NDJSON</button>
-            <div id="ndjson-response" class="response"></div>
+            <h2>9. application/octet-stream</h2>
+            <div class="payload">Uint8Array([72, 101, 108, 108, 111])
+// "Hello" in ASCII bytes</div>
+            <button onclick="sendBinary()">Send Binary</button>
+            <div id="binary-response" class="response"></div>
         </div>
     </div>
 
@@ -125,18 +125,23 @@ Line 3 of the content.</div>
             return getCookie('csrftoken');
         }
 
-        async function sendJSON() {
-            const data = { name: "John Doe", email: "john@example.com", age: 30 };
-            const response = await fetch('/api/json/', {
+        async function sendURLEncoded() {
+            const params = new URLSearchParams();
+            params.append('username', 'john_doe');
+            params.append('email', 'john@example.com');
+            params.append('password', 'Secret123');
+            params.append('bio', 'This is a multi-line\nbio text.\nIt supports newlines!');
+
+            const response = await fetch('/api/urlencoded/', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/x-www-form-urlencoded',
                     'X-CSRFToken': getCSRFToken()
                 },
-                body: JSON.stringify(data)
+                body: params
             });
             const result = await response.json();
-            document.getElementById('json-response').textContent = JSON.stringify(result, null, 2);
+            document.getElementById('urlencoded-response').textContent = JSON.stringify(result, null, 2);
         }
 
         async function sendMultipart() {
@@ -160,23 +165,34 @@ Line 3 of the content.</div>
             document.getElementById('multipart-response').textContent = JSON.stringify(result, null, 2);
         }
 
-        async function sendURLEncoded() {
-            const params = new URLSearchParams();
-            params.append('username', 'john_doe');
-            params.append('email', 'john@example.com');
-            params.append('password', 'Secret123');
-            params.append('bio', 'This is a multi-line\nbio text.\nIt supports newlines!');
-
-            const response = await fetch('/api/urlencoded/', {
+        async function sendJSON() {
+            const data = { name: "John Doe", email: "john@example.com", age: 30 };
+            const response = await fetch('/api/json/', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Content-Type': 'application/json',
                     'X-CSRFToken': getCSRFToken()
                 },
-                body: params
+                body: JSON.stringify(data)
             });
             const result = await response.json();
-            document.getElementById('urlencoded-response').textContent = JSON.stringify(result, null, 2);
+            document.getElementById('json-response').textContent = JSON.stringify(result, null, 2);
+        }
+
+        async function sendNDJSON() {
+            const ndjsonData = `{"name":"John","age":30}
+{"name":"Jane","age":25}
+{"name":"Bob","age":35}`;
+            const response = await fetch('/api/ndjson/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-ndjson',
+                    'X-CSRFToken': getCSRFToken()
+                },
+                body: ndjsonData
+            });
+            const result = await response.json();
+            document.getElementById('ndjson-response').textContent = JSON.stringify(result, null, 2);
         }
 
         async function sendTextPlain() {
@@ -193,18 +209,22 @@ Line 3 of the content.</div>
             document.getElementById('text-response').textContent = JSON.stringify(result, null, 2);
         }
 
-        async function sendBinary() {
-            const binaryData = new Uint8Array([72, 101, 108, 108, 111]);
-            const response = await fetch('/api/binary/', {
+        async function sendHTML() {
+            const htmlData = `<!DOCTYPE html>
+<html>
+<head><title>Example</title></head>
+<body><h1>Hello World</h1></body>
+</html>`;
+            const response = await fetch('/api/html/', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/octet-stream',
+                    'Content-Type': 'text/html',
                     'X-CSRFToken': getCSRFToken()
                 },
-                body: binaryData
+                body: htmlData
             });
             const result = await response.json();
-            document.getElementById('binary-response').textContent = JSON.stringify(result, null, 2);
+            document.getElementById('html-response').textContent = JSON.stringify(result, null, 2);
         }
 
         async function sendXML() {
@@ -226,24 +246,6 @@ Line 3 of the content.</div>
             document.getElementById('xml-response').textContent = JSON.stringify(result, null, 2);
         }
 
-        async function sendHTML() {
-            const htmlData = `<!DOCTYPE html>
-<html>
-<head><title>Example</title></head>
-<body><h1>Hello World</h1></body>
-</html>`;
-            const response = await fetch('/api/html/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'text/html',
-                    'X-CSRFToken': getCSRFToken()
-                },
-                body: htmlData
-            });
-            const result = await response.json();
-            document.getElementById('html-response').textContent = JSON.stringify(result, null, 2);
-        }
-
         async function sendSVG() {
             const svgData = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
     <circle cx="50" cy="50" r="40" stroke="black" stroke-width="3" fill="red" />
@@ -260,20 +262,18 @@ Line 3 of the content.</div>
             document.getElementById('svg-response').textContent = JSON.stringify(result, null, 2);
         }
 
-        async function sendNDJSON() {
-            const ndjsonData = `{"name":"John","age":30}
-{"name":"Jane","age":25}
-{"name":"Bob","age":35}`;
-            const response = await fetch('/api/ndjson/', {
+        async function sendBinary() {
+            const binaryData = new Uint8Array([72, 101, 108, 108, 111]);
+            const response = await fetch('/api/binary/', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/x-ndjson',
+                    'Content-Type': 'application/octet-stream',
                     'X-CSRFToken': getCSRFToken()
                 },
-                body: ndjsonData
+                body: binaryData
             });
             const result = await response.json();
-            document.getElementById('ndjson-response').textContent = JSON.stringify(result, null, 2);
+            document.getElementById('binary-response').textContent = JSON.stringify(result, null, 2);
         }
     </script>
 </body>
