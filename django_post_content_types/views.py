@@ -79,8 +79,7 @@ def handle_multipart(request):
 def handle_json(request):
     """Handle application/json requests"""
     try:
-        data = json.loads(request.body)
-        validated = JSONDataSchema(**data)
+        validated = JSONDataSchema.model_validate_json(request.body)
 
         return JsonResponse(
             {
